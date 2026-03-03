@@ -17,6 +17,7 @@ Warden aims to solve this problem by leveraging the Cloudflare Workers ecosystem
 * **Core Vault Functionality:** Create, read, update, and delete ciphers and folders.
 * **File Attachments:** Optional Cloudflare KV or R2 storage for attachments.
 * **TOTP Support:** Store and generate Time-based One-Time Passwords.
+* **Server-side TOTP Tokens:** Store TOTP secrets server-side, with a public API to generate codes (compatible with [2fa.live](https://2fa.live)).
 * **Bitwarden Compatible:** Works with official Bitwarden clients.
 * **Free to Host:** Runs on Cloudflare's free tier.
 * **Low Maintenance:** Deploy it once and forget about it.
@@ -36,6 +37,44 @@ Warden supports file attachments using either **Cloudflare KV** or **Cloudflare 
 **Backend selection:** R2 takes priority — if R2 is configured, it will be used. Otherwise, KV is used.
 
 See the [deployment guide](docs/deployment.md) for setup details. R2 may incur additional costs; see [Cloudflare R2 pricing](https://developers.cloudflare.com/r2/pricing/).
+
+### Server-side TOTP Tokens
+
+In addition to the standard Bitwarden TOTP (client-side encrypted), Warden supports **server-side TOTP token management**. TOTP secrets are stored in plaintext in D1, allowing the server to generate verification codes on demand.
+
+**Two modes:**
+
+1. **Public calculator** (no auth): `GET /api/totp/{base32_secret}` -- returns `{"token":"123456"}`, compatible with [2fa.live](https://2fa.live).
+2. **Personal token store** (JWT required): full CRUD on `/api/totp-tokens` -- each entry returns a live TOTP code.
+
+| Method   | Path                    | Auth | Description                              |
+|----------|-------------------------|------|------------------------------------------|
+| `GET`    | `/api/totp/{secret}`    | No   | Compute TOTP code from Base32 secret     |
+| `GET`    | `/api/totp-tokens`      | JWT  | List all stored tokens with live codes   |
+| `POST`   | `/api/totp-tokens`      | JWT  | Add a TOTP token (name + secret)         |
+| `GET`    | `/api/totp-tokens/{id}` | JWT  | Get single token with live code          |
+| `DELETE` | `/api/totp-tokens/{id}` | JWT  | Delete a stored token                    |
+
+**Example:**
+
+```bash
+# Public calculator (no auth)
+curl https://your-worker.dev/api/totp/JBSWY3DPEHPK3PXP
+# {"token":"492039"}
+
+# Store a TOTP token
+curl -X POST https://your-worker.dev/api/totp-tokens \
+  -H "Authorization: Bearer <jwt>" \
+  -H "Content-Type: application/json" \
+  -d '{"name":"GitHub","secret":"JBSWY3DPEHPK3PXP","issuer":"GitHub"}'
+
+# List all tokens with live codes
+curl https://your-worker.dev/api/totp-tokens \
+  -H "Authorization: Bearer <jwt>"
+```
+
+> [!WARNING]
+> Server-side TOTP secrets are stored **unencrypted** in D1. This is by design (the server must read secrets to generate codes). Only store TOTP secrets you are comfortable having in your D1 database.
 
 ## Current Status
 

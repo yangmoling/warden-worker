@@ -7,7 +7,7 @@ use worker::Env;
 
 use crate::handlers::{
     accounts, attachments, ciphers, config, devices, domains, emergency_access, folders, identity,
-    import, meta, sync, twofactor, webauth,
+    import, meta, sync, totp, twofactor, webauth,
 };
 
 pub fn api_router(env: Env) -> Router {
@@ -210,5 +210,11 @@ pub fn api_router(env: Env) -> Router {
         )
         .route("/api/two-factor/get-recover", post(twofactor::get_recover))
         .route("/api/two-factor/recover", post(twofactor::recover))
+        // TOTP token management (server-side plaintext secrets)
+        .route("/api/totp/{secret}", get(totp::get_totp_by_secret))
+        .route("/api/totp-tokens", get(totp::list_totp_tokens))
+        .route("/api/totp-tokens", post(totp::create_totp_token))
+        .route("/api/totp-tokens/{id}", get(totp::get_totp_token))
+        .route("/api/totp-tokens/{id}", delete(totp::delete_totp_token))
         .with_state(app_state)
 }

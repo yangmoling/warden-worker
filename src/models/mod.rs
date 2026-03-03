@@ -5,3 +5,4 @@ pub mod import;
 pub mod sync;
 pub mod twofactor;
 pub mod user;
+pub mod totp_token;

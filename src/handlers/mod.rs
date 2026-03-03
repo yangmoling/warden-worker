@@ -13,6 +13,7 @@ pub mod purge;
 pub mod sync;
 pub mod twofactor;
 pub mod webauth;
+pub mod totp;
 
 /// Shared helper for reading an environment variable into usize.
 pub(crate) fn get_env_usize(env: &worker::Env, var_name: &str, default: usize) -> usize {
